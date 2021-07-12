@@ -11,6 +11,7 @@
 # limitations under the License.
 import time
 from typing import List, Union, Optional
+from logging import getLogger
 
 import airflow.models
 from airflow.models import DagRun
@@ -29,7 +30,10 @@ from marquez_airflow.utils import (
 )
 from pkg_resources import parse_version
 
-if parse_version(AIRFLOW_VERSION) >= parse_version("1.10.11"):
+if parse_version(AIRFLOW_VERSION) >= parse_version("2.0.0"):
+    # Corrects path of import for Airflow versions below 1.10.11
+    from airflow.utils.log.logging_mixin import LoggingMixin
+elif parse_version(AIRFLOW_VERSION) >= parse_version("1.10.11"):
     from airflow import LoggingMixin
 else:
     # Corrects path of import for Airflow versions below 1.10.11
@@ -72,7 +76,7 @@ def lineage_run_id(run_id, task, session=None):
 
 class DAG(airflow.models.DAG, LoggingMixin):
     def __init__(self, *args, extractor_mapper=None, **kwargs):
-        self.log.debug("marquez-airflow dag starting")
+        self.log.info("marquez-airflow dag starting")
         macros = {}
         if kwargs.__contains__("user_defined_macros"):
             macros = kwargs["user_defined_macros"]
@@ -99,6 +103,7 @@ class DAG(airflow.models.DAG, LoggingMixin):
     def create_dagrun(self, *args, **kwargs):
         # run Airflow's create_dagrun() first
         dagrun = super(DAG, self).create_dagrun(*args, **kwargs)
+        self.log.info("CREATE_DAGRUN")
 
         create_dag_start_ms = self._now_ms()
         try:
@@ -120,7 +125,7 @@ class DAG(airflow.models.DAG, LoggingMixin):
     # Doing it other way would require to hook up to
     # scheduler, where tasks are actually started
     def _register_dagrun(self, dagrun: DagRun, is_external_trigger: bool, execution_date: str):
-        self.log.debug(f"self.task_dict: {self.task_dict}")
+        self.log.info(f"self.task_dict: {self.task_dict}")
         # Register each task in the DAG
         for task_id, task in self.task_dict.items():
             t = self._now_ms()
@@ -155,7 +160,7 @@ class DAG(airflow.models.DAG, LoggingMixin):
                     exc_info=True)
 
     def handle_callback(self, *args, **kwargs):
-        self.log.debug(f"handle_callback({args}, {kwargs})")
+        self.log.info(f"handle_callback({args}, {kwargs})")
         try:
             dagrun = args[0]
             self.log.debug(f"handle_callback() dagrun : {dagrun}")
@@ -170,6 +175,10 @@ class DAG(airflow.models.DAG, LoggingMixin):
                 exc_info=True)
 
         return super().handle_callback(*args)
+
+    def run(self, *args, **kwargs):
+        self.log.info(f"RUN ({args}, {kwargs})")
+        super().run(*args, **kwargs)
 
     def _report_task_instances(self, dagrun, session):
         task_instances = dagrun.get_task_instances()

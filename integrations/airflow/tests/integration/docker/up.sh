@@ -34,11 +34,8 @@ echo "${MARQUEZ_AIRFLOW_WHL_ALL}" > requirements.txt
 
 # Add revision to integration-requirements.txt
 cat > integration-requirements.txt <<EOL
-apache-airflow==1.10.12
-apache-airflow[gcp]==1.10.12
-apache-airflow[gcp_api]==1.10.12
-apache-airflow[google]==1.10.12
-apache-airflow[postgres]==1.10.12
+apache-airflow==2.1.1
+apache-airflow-providers-postgres==2.0.0
 requests==2.24.0
 psycopg2-binary==2.8.6
 httplib2>=0.18.1
@@ -54,4 +51,5 @@ marquez-python
 ${MARQUEZ_AIRFLOW_WHL}
 EOL
 
-docker-compose up --build --force-recreate --exit-code-from integration
+docker-compose up --build --abort-on-container-exit airflow-init postgres
+docker-compose up --build --exit-code-from integration --scale airflow-init=0

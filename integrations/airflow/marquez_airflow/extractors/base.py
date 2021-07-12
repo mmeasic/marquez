@@ -1,11 +1,21 @@
 from abc import ABC, abstractmethod
 from typing import List, Dict, Type, Union, Optional
 
-from airflow import LoggingMixin
 from airflow.models import BaseOperator
 from openlineage.facet import BaseFacet
+from pkg_resources import parse_version
 
 from marquez.dataset import Dataset
+from airflow.version import version as AIRFLOW_VERSION
+
+if parse_version(AIRFLOW_VERSION) >= parse_version("2.0.0"):
+    # Corrects path of import for Airflow versions below 1.10.11
+    from airflow.utils.log.logging_mixin import LoggingMixin
+elif parse_version(AIRFLOW_VERSION) >= parse_version("1.10.11"):
+    from airflow import LoggingMixin
+else:
+    # Corrects path of import for Airflow versions below 1.10.11
+    from airflow.utils.log.logging_mixin import LoggingMixin
 
 
 class StepMetadata:

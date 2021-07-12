@@ -1,26 +1,12 @@
 FROM marquez-airflow-base:latest AS build
 
-FROM bitnami/airflow-scheduler:1.10.12 AS scheduler
+FROM apache/airflow:2.1.1 AS airflow
 COPY --from=build /app/wheel /whl
 USER root
 RUN apt-get update && \
     apt-get install -y git
-USER 1001
-
-
-FROM bitnami/airflow-worker:1.10.12 AS worker
-COPY --from=build /app/wheel /whl
-USER root
-RUN apt-get update && \
-    apt-get install -y git
-USER 1001
-
-FROM bitnami/airflow:1.10.12 AS airflow
-COPY --from=build /app/wheel /whl
-USER root
-RUN apt-get update && \
-    apt-get install -y git
-USER 1001
+USER airflow
+RUN pip install /whl/*
 
 FROM marquez-airflow-base:latest AS integration
 COPY integration-requirements.txt integration-requirements.txt
